@@ -40,6 +40,10 @@ echo "テスト本文：送信確認" | mail -r shiozumi-makoto@esmile-holdings.com -s "送
 echo "テスト本文：送信確認" | mail -r shiozumi-makoto@esmile-holdings.com -s "送信テスト from ovs-024 test 2" shiozumi@esmile-hd.jp
 echo "テスト本文：送信確認" | mail -r shiozumi-makoto@esmile-holdings.com -s "送信テスト from ovs-024" shiozumi@esmile-hd.jp
 
+
+echo "テスト本文：送信確認" | mail -r shiozumi-makoto@esmile-holdings.com -s "送信テスト from ovs-009" shiozumi.makoto@gmail.com
+
+
 [root@ovs-024 tools]# tail -n 10 /var/log/maillog
 Oct 24 16:30:02 ovs-024 postfix/qmgr[465002]: 8F29D9BD9C: from=<root@ovs-025.esmile-holdings.com>, size=2706, nrcpt=1 (queue active)
 Oct 24 16:30:04 ovs-024 postfix/smtp[465101]: Anonymous TLS connection established to mx7.gmoserver.jp[210.172.183.45]:25: TLSv1.2 with cipher ADH-AES256-GCM-SHA384 (256/256 bits)
@@ -54,13 +58,19 @@ Oct 24 16:30:42 ovs-024 postfix/qmgr[465002]: 07BA69BD9C: removed
 
 
 
+echo "テストメール（署名確認用0n）NEXT" | mail -r shiozumi-makoto@esmile-holdings.com -s "NEXT : DKIM / SPF / DMARC test from ovs-024" shiozumi.makoto@gmail.com
+
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@esmile-holdings.com header.s=default header.b=H3ewIb+C;
+       spf=pass (google.com: domain of shiozumi-makoto@esmile-holdings.com designates 221.241.134.212 as permitted sender) smtp.mailfrom=shiozumi-makoto@esmile-holdings.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=esmile-holdings.com
 
 
+echo "テストメール（署名確認用0n）NEXT ovs-009 " | mail -r shiozumi-makoto@esmile-holdings.com -s "NEXT : DKIM / SPF / DMARC test from ovs-009" shiozumi.makoto@gmail.com
 
-
-
-
-echo "テストメール（署名確認用）" | mail -r shiozumi-makoto@esmile-holdings.com -s "DKIM / SPF / DMARC test from ovs-024" shiozumi.makoto@gmail.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       spf=pass (google.com: domain of shiozumi-makoto@esmile-holdings.com designates 221.241.134.211 as permitted sender) smtp.mailfrom=shiozumi-makoto@esmile-holdings.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=esmile-holdings.com
 
 echo "SMTP inbound OK test" | mail -r shiozumi-makoto@esmile-holdings.com -s "Inbound test" shiozumi-makoto@esmile-holdings.com
 
@@ -309,3 +319,39 @@ systemctl restart dovecot
 
 [root@ovs-024 tools]# ss -lntup | egrep ':(143|993|110|995)\b'
 tcp   LISTEN 0      100                              0.0.0.0:143        0.0.0.0:*    users:(("dovecot",pid=495899,fd=38))                                                                                                  tcp   LISTEN 0      100                              0.0.0.0:993        0.0.0.0:*    users:(("dovecot",pid=495899,fd=39))                                                                                                  tcp   LISTEN 0      100                              0.0.0.0:995        0.0.0.0:*    users:(("dovecot",pid=495899,fd=22))                                                                                                  tcp   LISTEN 0      100                              0.0.0.0:110        0.0.0.0:*    users:(("dovecot",pid=495899,fd=21))
+
+
+
+
+
+
+SUBJ="[TEST] OVS-010 -> OVS-009 $(date +%F-%T)"
+MID="<$(date +%s).ovs010@esmile-holdings.com>"
+
+swaks -s ovs-009 -p 25 \
+  --helo ovs-009.esmile-holdings.com \
+  --from shiozumi-makoto@esmile-holdings.com \
+  --to shiozumi.makoto@gmail.com \
+  --h-From "shiozumi-makoto@esmile-holdings.com" \
+  --h-Subject "$SUBJ" \
+  --h-Date "$(date -R)" \
+  --h-Message-Id "$MID" \
+  --body "こんにちは。\nこちらは社内メールサーバの送信テストです。\n正常に届きましたらご確認ください。" \
+  --tls-optional
+
+
+
+
+SUBJ="[TEST] OVS-025 -> OVS-024 $(date +%F-%T)"
+MID="<$(date +%s).ovs025@esmile-holdings.com>"
+
+swaks -s ovs-024 -p 25 \
+  --helo ovs-024.esmile-holdings.com \
+  --from shiozumi-makoto@esmile-holdings.com \
+  --to shiozumi.makoto@gmail.com \
+  --h-From "shiozumi-makoto@esmile-holdings.com" \
+  --h-Subject "$SUBJ" \
+  --h-Date "$(date -R)" \
+  --h-Message-Id "$MID" \
+  --body "こんにちは。\nこちらは社内メールサーバの送信テストです。\n正常に届きましたらご確認ください。" \
+  --tls-optional

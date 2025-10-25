@@ -159,6 +159,7 @@ printf("BASE_DN   : %s\n", $BASE_DN);
 printf("GROUPS_OU : %s\n", $GROUPS_OU);
 printf("MODE      : %s\n", $CONFIRM ? 'APPLY' : 'DRY-RUN');
 printf("TARGETS   : %s\n", implode(',', $TARGET_GROUPS));
+printf("DISCRIPT  : %s\n", ((bool)$DO_UPDS) ? "true" : "false");
 echo "----------------------------------------------\n";
 
 //--------------------------------------------------------------
@@ -241,10 +242,12 @@ function infer_gid_from_defs(string $cn): ?int {
 /** posixGroup を生成（存在しなければ add）し、gidNumber を整合させる */
 
 
-function ensure_posix_group($link, string $dn, string $cn, ?int $gid, bool $confirm, $group_def, bool $description): array {
+function ensure_posix_group($link, string $dn, string $cn, ?int $gid, bool $confirm, $group_def, bool $desc_update): array {
 
     $created = false; $fixedGid = false;
-
+    $description = $group_def[$gid]['description'] ?? 'Domain Unix group';
+//	echo $description;
+//	exit;
 /*
 $group_def =
 
@@ -279,24 +282,24 @@ $group_def =
             'objectClass' => ['top','posixGroup'],
             'cn'          => $cn,
             'gidNumber'   => (string)$gid,
-            'description' => $group_def[$gid]['description'] ?? 'Domain Unix group',
+            'description' => $description,
         ];
         if ($confirm) {
             $ok = @ldap_add($link, $dn, $entry);
-            if (!$ok) return [false, false, "ldap_add失敗: ".ldap_error($link)];
+            if (!$ok) return [false, false, "ldap_add失敗: ".ldap_error($link), $description];
         }
         $created = true;
-        return [$created, $fixedGid, null];
+        return [$created, $fixedGid, null, $description];
     }
 
     // 既存: gidNumber の整合をチェック
     $current = read_gid($link, $dn);
 
-    if (($gid !== null && $current !== null && $gid !== $current) || ($description === true)) {
+    if (($gid !== null && $current !== null && $gid !== $current) || ($desc_update === true)) {
         // 安全のため、既存 gid と異なる場合は差し替えを実行（要件に応じて方針変更可）
         if ($confirm) {
-            $ok = @ldap_modify($link, $dn, ['gidNumber'=>(string)$gid, 'description' => $group_def[$gid]['description'] ?? 'Domain Unix group']);
-            if (!$ok) return [$created, $fixedGid, "gidNumber更新失敗: ".ldap_error($link)];
+            $ok = @ldap_modify($link, $dn, ['gidNumber'=>(string)$gid, 'description' => $description ]);
+            if (!$ok) return [$created, $fixedGid, "gidNumber更新失敗: ".ldap_error($link), $description];
         }
         $fixedGid = true;
 /*
@@ -309,10 +312,10 @@ $group_def =
 	exit;
 */
 
-    } else {
+	    } else {
 
-	}
-    return [$created, $fixedGid, null];
+		}
+    return [$created, $fixedGid, null, $description];
 }
 
 //--------------------------------------------------------------
@@ -349,13 +352,14 @@ foreach ($TARGET_GROUPS as $cn) {
 	exit;
 */
 
-    [$created,$fixed,$err] = ensure_posix_group($link, $dn, $cn, $gid, $CONFIRM, $GROUP_DEF, $DO_UPDS);
+    [$created,$fixed,$err,$description] = ensure_posix_group($link, $dn, $cn, $gid, $CONFIRM, $GROUP_DEF, $DO_UPDS);
     if ($err !== null) {
         warn("{$cn}: {$err}");
         continue;
     }
     if ($created) { $totalCreated++; info(($CONFIRM?'ADD ':'DRY ADD ')."posixGroup {$dn} (gid={$gid})"); }
     if ($fixed)   { $totalFixed++;   info(($CONFIRM?'MOD ':'DRY MOD ')."gidNumber → {$gid}"); }
+    if ($fixed)   { $totalFixed++;   info(($CONFIRM?'MOD ':'DRY MOD ')."description → {$description}"); }
     if (!$created && !$fixed) { info("OK: {$cn}（変更なし）"); }
 }
 

@@ -93,8 +93,8 @@ smtpd_tls_CAfile    = /etc/postfix/tls/ca.crt
 
 smtpd_tls_security_level   = may
 smtpd_tls_auth_only        = yes
-
 smtpd_tls_loglevel         = 1
+
 smtpd_tls_received_header  = yes
 
 # --- 送信時TLS ---------------------------------------------------------
@@ -136,3 +136,13 @@ postscreen_pipelining_action = drop
 
 # --- LMTP 連携に切替 ---------------------------------------------------------
 # local_transport=lmtp:unix:private/dovecot-lmtp
+
+
+#
+# ovs-025 の /etc/php.ini
+# sendmail_path = "/usr/sbin/sendmail -t -i -fgyomu@esmile-holdings.com"
+# -f は「Envelope From（Return-Path）」を指定するオプション
+#
+# apache / www-data / nobody など非特権ユーザー -> Postfix が無視して、apache@ホスト名 を強制
+#
+authorized_submit_users = static:anyone

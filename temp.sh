@@ -20,16 +20,32 @@ CONFIRM_FLAG=(--confirm)
 [[ "$DRY" -eq 1 ]] && CONFIRM_FLAG=()
 LIST_FLAG=(--list)
 
+# kakasi 
+export PATH=/usr/local/bin:$PATH
 
-# echo -e "\n"
+# exit
+# echo $PATH
+
 echo "★★★★★★[STEP1] ユーザ本体の同期（HOME/LDAP upsert）"
-php "${BASE_DIR}/ldap_id_pass_from_postgres_set.php" --ldap --ldapi
+php "${BASE_DIR}/ldap_id_pass_from_postgres_set.php" --ldapi --ldap --confirm
+
+# PATH=/usr/bin:/bin: /bin/sh -c '/usr/local/etc/openldap/tools/temp.sh'
+# env -i PATH=/usr/local/bin:/usr/bin:/bin: HOME=/root SHELL=/bin/sh /bin/sh -c '/usr/local/etc/openldap/tools/temp.sh'
+# php ldap_id_pass_from_postgres_set.php --ldapi --home --maildir-only --confirm
+# php ldap_id_pass_from_postgres_set.php --ldapi --ldap --confirm
+# exit
 
 echo "★★★★★★[STEP1.5]"
 
+#
+# php ldap_level_groups_sync.php --init-group --ldapi --description --group=users,esmile-dev,err-cls --confirm
+# export MAIL_PRIMARY_DOMAIN=esmile-holdings.com
+# export MAIL_EXTRA_DOMAINS="esmile-soltribe.com, esmile-systems.jp"
+#
+
 php "${BASE_DIR}/ldap_level_groups_sync.php" \
   --group=users,esmile-dev,nicori-dev,kindaka-dev,boj-dev,e_game-dev,solt-dev,social-dev,adm-cls,dir-cls,mgr-cls,mgs-cls,stf-cls,ent-cls,tmp-cls,err-cls \
-  --init-group "${CONFIRM_FLAG[@]}" --ldapi \
+  --init-group "${CONFIRM_FLAG[@]}" --ldapi --description \
   || true
 
 echo "★★★★★★[STEP2] 役職クラスの posixGroup を事前整備（存在しなければ作成・gid整合）"

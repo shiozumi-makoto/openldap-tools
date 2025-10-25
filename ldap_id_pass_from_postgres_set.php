@@ -39,6 +39,9 @@ $schema = [
     'verbose'    => ['cli'=>'verbose','type'=>'bool','default'=>false,'desc'=>'詳細ログ'],
     'init'       => ['cli'=>'init','type'=>'bool','default'=>false,'desc'=>'初期化モード（DB samba_id を NULL、--ldap時は uid を削除）'],
 
+	// Maildir専用
+	'maildir-only'=> ['cli'=>'maildir-only','type'=>'bool','default'=>false,'desc'=>'Maildir のみ作成（home/link整備はスキップ）'],
+
     // LDAP
     'uri'        => ['cli'=>'uri','type'=>'string','env'=>'LDAP_URI','default'=>null,'desc'=>'ldap[s]/ldapi URI'],
     'ldapi'      => ['cli'=>'ldapi','type'=>'bool','default'=>false,'desc'=>'ldapi を使う'],
@@ -380,20 +383,20 @@ foreach ($rows as $r) {
     );
 
 
+//============================================================
 //	再設定
+//============================================================
 
-    $cn          = sprintf('%s %s', $r['名'], $r['姓']);
-    $sn          = sprintf('%s',    $r['姓']);
-    $givenName   = sprintf('%s',    $r['名']);
-    $homeLink 	 = sprintf('/home/%02d-%03d-%s', $cmp, $uidn, $login);
-//  $homeOld 	 = sprintf('/home/%02d-%03d-%s', $cmp, $uidn, $r['login_id']);
-
-    $sambaSID  = $domain_sid . "-" . $uidNumber;
+    $cn         = sprintf('%s %s', $r['名'], $r['姓']);
+    $sn         = sprintf('%s',    $r['姓']);
+    $givenName  = sprintf('%s',    $r['名']);
+    $homeLink 	= sprintf('/home/%02d-%03d-%s', $cmp, $uidn, $login);
+//  $homeOld 	= sprintf('/home/%02d-%03d-%s', $cmp, $uidn, $r['login_id']);
+    $sambaSID	= $domain_sid . "-" . $uidNumber;
     $sambaPrimaryGroupSID = $domain_sid . "-" . $gidNumber;
-
-    $salt = random_bytes(4);
-    $ssha = normalize_password($pwd);
-    $ntlm = ntlm_hash($pwd);
+    $salt		= random_bytes(4);
+    $ssha		= normalize_password($pwd);
+    $ntlm		= ntlm_hash($pwd);
     $pwdLastSet = time();
 
     if (!preg_match('/^[0-9A-F]+$/', $ntlm)) {
@@ -401,6 +404,16 @@ foreach ($rows as $r) {
         continue;
     }
 
+	$primaryDomain	 = Env::str('MAIL_PRIMARY_DOMAIN', 'esmile-holdings.com');
+	$extraDomainsCsv = Env::str('MAIL_EXTRA_DOMAINS', ''); // 例: "esmile-soltribe.com, esmile-systems.jp"
+	$extraDomains	 = array_values(array_filter(array_map('trim', explode(',', $extraDomainsCsv))));
+	$mailAddrs		 = [ sprintf('%s@%s', $login, $primaryDomain) ];
+	foreach ($extraDomains as $dom) {
+	     if ($dom !== '') $mailAddrs[] = sprintf('%s@%s', $login, $dom);
+	}
+	$mailAddrs = array_values(array_unique($mailAddrs));
+//	print_r($mailAddrs);
+//	exit;
 
 /*
 echo $cn."\n";
@@ -419,20 +432,16 @@ exit;
 /*
     $passwd = $row['passwd_id'];
     $dn = "uid=$uid,ou=$tnas_name,$ldap_base";
-
     $cn          = sprintf('%s %s', $row['名'], $row['姓']);
     $sn          = sprintf('%s',     $row['姓']);
     $givenName   = sprintf('%s',     $row['名']);
     $displayName = sprintf('%s%s',   $row['姓'], $row['名']);
-
     $homeDir = sprintf('/home/%02d-%03d-%s', $cmp_id, $user_id, $uid);
     $homeOld = sprintf('/home/%02d-%03d-%s', $cmp_id, $user_id, $row['login_id']);
-
     $uidNumber = $cmp_id * 10000 + $user_id;
     $gidNumber = 2000 + $cmp_id;
     $sambaSID  = $domain_sid . "-" . $uidNumber;
     $sambaPrimaryGroupSID = $domain_sid . "-" . $gidNumber;
-
     $salt = random_bytes(4);
     $ssha = '{SSHA}' . base64_encode(sha1($passwd . $salt, true) . $salt);
     $ntlm = ntlm_hash($passwd);
@@ -464,11 +473,17 @@ exit;
 */
 
 
+// === Mail アドレス生成（環境変数/ini で制御）========================
+// 既定ドメイン: MAIL_PRIMARY_DOMAIN（なければ esmile-holdings.com）
+// 追加ドメイン: MAIL_EXTRA_DOMAINS（カンマ区切り、任意）
+//
+//  export MAIL_PRIMARY_DOMAIN=esmile-holdings.com
+//  export MAIL_EXTRA_DOMAINS="esmile-soltribe.com, esmile-systems.jp"//
+// =====================================================================
+
     // LDAP upsert（進捗の [MOD]/[ADD] 行は出さない）
     if (!empty($cfg['ldap'])) {
-
         $entry = ldap_find_by_uid($ds, (string)$baseDn, $login, $DBG);
-
         if ($entry) {
             $dn   = $entry['dn'];
             $mods = build_modify_attrs($entry['attrs'], [
@@ -482,6 +497,7 @@ exit;
                 'homeDirectory' => $homeLink,
                 'loginShell'    => (string)$cfg['shell'],
                 'userPassword'  => normalize_password($pwd),
+                'mail'          => $mailAddrs, // mail は multi-valued 属性。プライマリ＋（任意で）追加ドメインを付与
                 'sambaSID'				=> $sambaSID,
                 'sambaNTPassword'		=> $ntlm,
                 'sambaAcctFlags' 		=> '[U          ]',
@@ -491,14 +507,12 @@ exit;
             if ($mods && $APPLY && !@ldap_modify($ds, $dn, $mods)) {
                 log_ldap_error($ERR_LOG, $cmp, $uidn, $login, 'modify', $dn, $ds);
             }
-
-//		print_r($entry['attrs']);
-//		print_r($mods);
-//		echo "update! ------------------------------------------------------------- $empType \n";
-//		exit;
+//				print_r($entry['attrs']);
+//				print_r($mods);
+//				echo "update! ------------------------------------------------------------- $empType \n";
+//				exit;
 
         } else {
-
             $dnBase = infer_people_ou($ds, (string)$baseDn, $DBG) ?: (string)$baseDn;
             $dn = "uid={$login}," . $dnBase;
             $attrs = [
@@ -514,16 +528,15 @@ exit;
                 'homeDirectory' => $homeLink,
                 'loginShell'    => (string)$cfg['shell'],
                 'userPassword'  => normalize_password($pwd) ?? null,
+                'mail'          => $mailAddrs, // mail は multi-valued 属性。プライマリ＋（任意で）追加ドメインを付与
                 'sambaSID'				=> $sambaSID,
                 'sambaNTPassword'		=> $ntlm,
                 'sambaAcctFlags' 		=> '[U          ]',
                 'sambaPwdLastSet'		=> $pwdLastSet,
                 'sambaPrimaryGroupSID'  => $sambaPrimaryGroupSID
             ];	
-
 //				print_r($attrs);
 //				exit;
-
             if ($APPLY && !@ldap_add($ds, $dn, array_filter($attrs, fn($v)=>$v!==null && $v!==''))) {
                 log_ldap_error($ERR_LOG, $cmp, $uidn, $login, 'add', $dn, $ds);
             }
@@ -532,7 +545,12 @@ exit;
 
     // HOME 整備
     if (!empty($cfg['home'])) {
-        ensure_home($homeReal, $homeLink, $login, $APPLY, $DBG);
+
+		if ($cfg['maildir-only']) {
+		    ensure_maildir($homeLink, $login, $APPLY, $DBG);
+		} else {
+	        ensure_home($homeReal, $homeLink, $login, $APPLY, $DBG, true);
+		}
     }
 
     // DB: samba_id 更新
@@ -549,6 +567,7 @@ echo "end!";
 echo "\n";
 exit;  
 */
+
 
 }
 
@@ -709,7 +728,7 @@ function normalize_password(?string $raw): ?string {
 }
 
 /** HOME 作成/リンク整備 */
-function ensure_home(string $real, string $link, string $login, bool $apply, callable $dbg): void {
+function ensure_home(string $real, string $link, string $login, bool $apply, callable $dbg, bool $withMaildir=true): void {
     // 実体
     if (!is_dir($real)) {
         if ($apply) {
@@ -745,7 +764,97 @@ function ensure_home(string $real, string $link, string $login, bool $apply, cal
             echo "  [DRY] link {$link} -> {$real}\n";
         }
     }
+
+    // Maildir 準備（任意）
+    if ($withMaildir) {
+        ensure_maildir($real, $login, $apply, $dbg);
+    }
 }
+
+
+/** Maildir を作成/権限整備（cur/new/tmp & 所有者） */
+function ensure_maildir(string $homeReal, string $login, bool $apply, callable $dbg): void {
+    $maildir = rtrim($homeReal, '/').'/Maildir';
+    $need    = [$maildir, "$maildir/cur", "$maildir/new", "$maildir/tmp"];
+
+    // 所有者解決
+    $uid = $gid = null;
+    if (function_exists('posix_getpwnam')) {
+        if ($pw = @posix_getpwnam($login)) {
+            $uid = $pw['uid'] ?? null;
+            $gid = $pw['gid'] ?? null;
+        }
+    }
+
+    foreach ($need as $d) {
+        if (!is_dir($d)) {
+            if ($apply) {
+                if (!@mkdir($d, 0700, true)) {
+                    fwrite(STDERR, "[ERROR] Maildir mkdir失敗: {$d}\n");
+                } else {
+                    echo "  [MKD] {$d}\n";
+                }
+            } else {
+                echo "  [DRY] mkdir {$d}\n";
+            }
+        } else {
+            $dbg("exists: {$d}");
+            // 既存でもパーミッションを整える（0700 推奨）
+            if ($apply) { @chmod($d, 0700); }
+        }
+    }
+
+    // 所有者調整（root 実行が前提）
+    if ($uid !== null && $gid !== null) {
+        // Maildir 配下のみ（home 全体に触りたくない場合）
+        if ($apply) {
+            // 再帰 chown
+            $it = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($maildir, FilesystemIterator::SKIP_DOTS),
+                RecursiveIteratorIterator::SELF_FIRST
+            );
+            foreach ([$maildir] as $top) { @chown($top, $uid); @chgrp($top, $gid); }
+            foreach ($it as $path => $info) {
+                @chown($path, $uid);
+                @chgrp($path, $gid);
+            }
+            echo "  [OWN] chown -R {$login}:{$gid} {$maildir}\n";
+        } else {
+            echo "  [DRY] chown -R {$login}:{$gid} {$maildir}\n";
+        }
+    } else {
+        fwrite(STDERR, "[WARN] 所有者未解決（posix_getpwnam 失敗）: {$login}\n");
+    }
+
+    // （任意）Sieve の最小雛形
+    $sieveDir  = rtrim($homeReal,'/').'/.sieve';
+    $sieveFile = rtrim($homeReal,'/').'/.dovecot.sieve';
+    if (!is_dir($sieveDir)) {
+        if ($apply) {
+				@mkdir($sieveDir, 0700);
+				echo "  [MKD] {$sieveDir}\n";
+				if ($uid!==null && $gid!==null) { 
+					@chown($sieveDir,$uid); @chgrp($sieveDir,$gid);
+				}
+		} else { echo "  [DRY] mkdir {$sieveDir}\n"; }
+    }
+    if (!file_exists($sieveFile)) {
+        $content = "require [\"fileinto\"];\n# 例: 迷惑メールをJunkへ\n#if header :contains \"X-Spam-Flag\" \"YES\" { fileinto \"Junk\"; stop; }\n";
+        if ($apply) {
+            if (@file_put_contents($sieveFile, $content) !== false) {
+                @chmod($sieveFile, 0600);
+                if ($uid!==null && $gid!==null) { @chown($sieveFile,$uid); @chgrp($sieveFile,$gid); }
+                echo "  [NEW] {$sieveFile}\n";
+            } else {
+                fwrite(STDERR, "[ERROR] Sieve 雛形作成失敗: {$sieveFile}\n");
+            }
+        } else {
+            echo "  [DRY] create {$sieveFile}\n";
+        }
+    }
+}	
+
+
 
 /** 職位ラベル（GroupDef 利用） */
 function level_to_label(?int $lv): string {

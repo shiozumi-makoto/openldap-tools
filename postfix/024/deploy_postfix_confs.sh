@@ -6,7 +6,7 @@ SSH_USER="${SSH_USER:-root}"
 HOST="${HOST:-ovs-024}"
 
 # ローカル（このスクリプトを実行するマシン）での配置元
-SRC_DIR="${SRC_DIR:-/usr/local/etc/openldap/tools/postfix}"
+SRC_DIR="${SRC_DIR:-/usr/local/etc/openldap/tools/postfix/024}"
 
 # 転送対象ファイル
 FILES=("main.cf" "master.cf" "ldap-alias.cf" "ldap-users.cf")

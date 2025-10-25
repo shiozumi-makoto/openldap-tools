@@ -1,3 +1,42 @@
+
+fix_OVS-024_sid.ldif ‚Æ‚¢‚¤–¼‘O‚Å•Û‘¶F
+
+dn: sambaDomainName=OVS-024,dc=e-smile,dc=ne,dc=jp
+changetype: modify
+replace: sambaSID
+sambaSID: S-1-5-21-3566765955-3362818161-2431109675
+
+
+ldapmodify -x -D "cn=admin,dc=e-smile,dc=ne,dc=jp" -W -f fix_OVS-024_sid.ldif
+
+ldapsearch -x -LLL -H ldap://127.0.0.1 -b "dc=e-smile,dc=ne,dc=jp" "(sambaDomainName=OVS-024)" sambaDomainName sambaSID
+
+ldapsearch -x -LLL -H ldap://127.0.0.1 -b "dc=e-smile,dc=ne,dc=jp" "(objectClass=sambaDomain)" sambaDomainName sambaSID
+
+[root@ovs-024 shiozumi]# ldapsearch -x -LLL -H ldap://127.0.0.1 -b "dc=e-smile,dc=ne,dc=jp" "(sambaDomainName=OVS-024)" sambaDomainName sambaSID
+dn: sambaDomainName=OVS-024,dc=e-smile,dc=ne,dc=jp
+sambaDomainName: OVS-024
+sambaSID: S-1-5-21-3566765955-3362818161-2431109675
+
+
+ldapsearch -x -LLL -H ldap://127.0.0.1 -b "dc=e-smile,dc=ne,dc=jp" "(objectClass=sambaDomain)" sambaDomainName sambaSID sambaNextRid
+
+dn: sambaDomainName=E-SMILE,dc=e-smile,dc=ne,dc=jp
+sambaDomainName: E-SMILE
+sambaSID: S-1-5-21-3566765955-3362818161-2431109675
+
+dn: sambaDomainName=OVS-012,dc=e-smile,dc=ne,dc=jp
+sambaDomainName: OVS-012
+sambaSID: S-1-5-21-3566765955-3362818161-2431109675
+sambaNextRid: 1025
+
+dn: sambaDomainName=OVS-024,dc=e-smile,dc=ne,dc=jp
+sambaDomainName: OVS-024
+sambaSID: S-1-5-21-3267237301-848188135-2990417903
+
+
+
+
 echo "# openldap-tools" >> README.md
 git init
 git add README.md
@@ -6,6 +45,7 @@ git branch -M main
 git remote add origin https://github.com/shiozumi-makoto/openldap-tools.git
 git push -u origin main
 
+git remote set-url origin git@github.com:shiozumi-makoto/https://github.com/shiozumi-makoto/openldap-tools.git
 
 
 php ldap_level_groups_sync.php --init-group --ldapi --description --group=e_game-dev,dir-cls

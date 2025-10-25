@@ -10,11 +10,11 @@ bind = yes
 bind_dn = cn=admin,dc=e-smile,dc=ne,dc=jp
 bind_pw = es0356525566
 
-# ‚±‚±‚ªƒ|ƒCƒ“ƒg
+# ã“ã“ãŒãƒã‚¤ãƒ³ãƒˆ
 domain            = esmile-holdings.com
 # domain            = esmile-holdings.com, esmile-soltribe.com, esmile-systems.jp
 
-# StartTLS ‚ğg‚¤
+# StartTLS ã‚’ä½¿ã†
 start_tls = yes
 # tls_ca_cert_file = /usr/local/etc/openldap/certs/cacert.crt
 tls_ca_cert_file = /etc/postfix/tls/ca.crt
