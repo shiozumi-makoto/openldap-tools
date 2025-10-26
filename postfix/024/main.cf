@@ -49,9 +49,10 @@ maximal_queue_lifetime = 3d
 bounce_queue_lifetime  = 3d
 
 # --- SMTP AUTH（Dovecot SASL経由） ------------------------------------
-# smtpd_sasl_type = dovecot
-# smtpd_sasl_path = private/auth
-# smtpd_sasl_auth_enable = yes
+smtpd_sasl_type = dovecot
+smtpd_sasl_path = private/auth
+smtpd_sasl_auth_enable = yes
+
 # smtpd_sasl_security_options = noanonymous
 # smtpd_sasl_local_domain = $myhostname
 # smtpd_tls_auth_only = yes
@@ -91,6 +92,8 @@ smtpd_tls_cert_file = /etc/postfix/tls/postfix.crt
 smtpd_tls_key_file  = /etc/postfix/tls/postfix.key
 smtpd_tls_CAfile    = /etc/postfix/tls/ca.crt
 
+
+smtp_tls_security_level    = may
 smtpd_tls_security_level   = may
 smtpd_tls_auth_only        = yes
 smtpd_tls_loglevel         = 1
