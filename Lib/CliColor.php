@@ -67,7 +67,7 @@ final class CliColor
     public static function boldYellow(string $s): string { return self::wrap($s, '1;33'); }
     public static function boldGreen(string $s): string  { return self::wrap($s, '1;32'); }
     public static function boldCyan(string $s): string   { return self::wrap($s, '1;36'); }
-public static function boldBlue(string $s): string { return self::wrap($s, '1;34'); }
+	public static function boldBlue(string $s): string { return self::wrap($s, '1;34'); }
 
     // ===== 出力ヘルパ =====
     /** 改行つき標準出力（色付きテキスト対応） */

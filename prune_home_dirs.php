@@ -27,7 +27,8 @@ $schema = [
     'bind_pass'   => ['cli'=>'bind-pass','type'=>'string','env'=>'LDAP_BIND_PASS','secret'=>true,'default'=>null,'desc'=>'Bind パス'],
     'base_dn'     => ['cli'=>'base-dn','type'=>'string','env'=>'LDAP_BASE_DN','default'=>null,'desc'=>'Base DN'],
 
-    'home_root'   => ['cli'=>'home-root','type'=>'string','default'=>'/ovs012_home','desc'=>'ホーム実体ルート'],
+#   'home_root'   => ['cli'=>'home-root','type'=>'string','default'=>'/ovs012_home','desc'=>'ホ	ーム実体ルート'],
+    'home_root'   => ['cli'=>'home-root','type'=>'string','default'=>'/ovs012','desc'=>'ホーム実体ルート'],
     'days'        => ['cli'=>'days','type'=>'int','default'=>30,'desc'=>'最終更新が N 日より古いものだけ対象'],
     'archive_dir' => ['cli'=>'archive-dir','type'=>'string','default'=>null,'desc'=>'実体を削除せずここへ移動（既定: <home_root>/_archive）'],
     'hard_delete' => ['cli'=>'hard-delete','type'=>'bool','default'=>false,'desc'=>'実体を完全削除（危険）'],
@@ -42,6 +43,7 @@ if (!empty($cfg['help'])) {
     ]);
     exit(0);
 }
+
 $APPLY = !empty($cfg['confirm']);
 $VERB  = !empty($cfg['verbose']);
 $DBG   = fn(string $m) => $VERB && print("[DBG] {$m}\n");
