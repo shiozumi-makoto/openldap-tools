@@ -29,7 +29,7 @@ final class GroupDef
         'nicori-dev'  => '[02:nicori]',
         'kindaka-dev' => '[03:kindaka]',
         'moepara-dev' => '[04:moepara]',
-        'boj-dev'     => '[05:b	oj]',
+        'boj-dev'     => '[05:boj]',
         'e_game-dev'  => '[09:e_games]',
         'solt-dev'    => '[10:soltribe]',
         'social-dev'  => '[12:social]',
@@ -237,6 +237,31 @@ public static function all_id(): array
 	}
     return $GROUP_DEF_MAP;
 }
+
+
+public static function all_group(): array
+{
+    $all = [];
+
+    // 事業グループ
+    foreach (self::BIZ_MAP as $name => $gid) {
+
+		$prefix = (int)substr((string)$gid,-2);
+		
+
+        $all[$prefix] = [
+            'type'    => 'biz',
+            'name'    => $name,
+            'gid'     => (int)$gid,
+            'display' => $name,
+			'description' => self::DESC_INFO[$name],
+        ];
+
+    }
+    return $all;
+}
+
+
 
 
 

@@ -80,9 +80,7 @@ $schema = [
     'help'        => ['cli'=>'help',   'type'=>'bool','default'=>false,'desc'=>'このヘルプを表示'],
     'confirm'     => ['cli'=>'confirm','type'=>'bool','default'=>false,'desc'=>'実際にDBへ書込（既定はDRY-RUN）'],
     'config'      => ['cli'=>'config', 'type'=>'string','default'=>null,'desc'=>'INI設定ファイルパス（tools.conf等）'],
-
-    // モード切替（どちらか必須）
-    // Onamae（PostgreSQL 由来）
+    // モード切替 people users（Ldap）onamae（PostgreSQL 由来）
     'people'      => ['cli'=>'People', 'type'=>'bool','default'=>false,'desc'=>'Peopleモード: uid="<cmp>-<user3桁>" を解析し "電子メールアドレスLDAP登録" へ'],
     'users'       => ['cli'=>'Users',  'type'=>'bool','default'=>false,'desc'=>'Usersモード: uidNumber から (cmp_id, user_id) を解析し "電子メールアドレス自社サーバー" へ'],
     'onamae'      => ['cli'=>'onamae','type'=>'bool','default'=>false,'desc'=>'Onamaeモード: public.passwd_mail（flag_id=1）を参照し "電子メールアドレスお名前ドットコム" へ'],
@@ -96,7 +94,6 @@ $schema = [
     'ldap_uri'    => ['cli'=>'ldap-uri','type'=>'string','env'=>'LDAP_URI','default'=>null,'desc'=>'LDAP URI（既定: tools.conf または ldapi）'],
     'people_dn'   => ['cli'=>'people-dn','type'=>'string','default'=>'ou=People,dc=e-smile,dc=ne,dc=jp','desc'=>'Peopleモードの検索ベースDN'],
     'users_dn'    => ['cli'=>'users-dn', 'type'=>'string','default'=>'ou=Users,dc=e-smile,dc=ne,dc=jp',  'desc'=>'Usersモードの検索ベースDN'],
-
     // PostgreSQL
     'pg_dsn'      => ['cli'=>'pg-dsn','type'=>'string', 'env'=>'PG_DSN', 'default'=>null,'desc'=>'PostgreSQL DSN'],
     'pg_host'     => ['cli'=>'pg-host','type'=>'string','env'=>'PG_HOST','default'=>'127.0.0.1','desc'=>'PostgreSQL ホスト'],
@@ -108,7 +105,6 @@ $schema = [
     'create_by'   => ['cli'=>'c-by','type'=>'string','env'=>'SCRIPT_USER','default'=>'ldap-sync','desc'=>'作成者 (create_by)'],
     'modified_by' => ['cli'=>'m-by','type'=>'string','env'=>'SCRIPT_USER','default'=>'ldap-sync','desc'=>'更新者 (modified_by)'],
 ];
-
 
 $cfg = Config::loadWithFile($argv, $schema, null);
 
